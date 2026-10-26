@@ -1,0 +1,304 @@
+{
+  "info": {
+    "name": "Transaction Ledger API",
+    "_postman_id": "6f1d2b3c-ledger-api-collection-0001",
+    "description": "Ready-to-run requests for the Transaction Ledger API. Run the folder top-to-bottom: the 'Create account' requests store the generated ids in collection variables that later requests reuse.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "aliceId", "value": "" },
+    { "key": "bobId", "value": "" },
+    { "key": "transactionId", "value": "" },
+    { "key": "transferId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health check",
+          "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+        }
+      ]
+    },
+    {
+      "name": "1. Accounts",
+      "item": [
+        {
+          "name": "Create account (Alice)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('balance starts at 0.00', () => pm.expect(pm.response.json().balance).to.eql('0.00'));",
+                  "pm.collectionVariables.set('aliceId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/accounts",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Alice\"\n}" }
+          }
+        },
+        {
+          "name": "Create account (Bob)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.collectionVariables.set('bobId', pm.response.json().id);"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/accounts",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bob\"\n}" }
+          }
+        },
+        {
+          "name": "Create account - client sets balance (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/accounts",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Rich\",\n  \"balance\": 1000\n}" }
+          }
+        },
+        {
+          "name": "Get account",
+          "request": { "method": "GET", "url": "{{baseUrl}}/accounts/{{aliceId}}" }
+        },
+        {
+          "name": "Get balance",
+          "request": { "method": "GET", "url": "{{baseUrl}}/accounts/{{aliceId}}/balance" }
+        },
+        {
+          "name": "Get balance - unknown account (404)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/accounts/does-not-exist/balance" }
+        }
+      ]
+    },
+    {
+      "name": "2. Transactions",
+      "item": [
+        {
+          "name": "Credit 100",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.collectionVariables.set('transactionId', pm.response.json().id);"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/accounts/{{aliceId}}/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"credit\",\n  \"amount\": 100,\n  \"description\": \"Salary\",\n  \"reference_id\": \"SAL-001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Credit 50",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/accounts/{{aliceId}}/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"credit\",\n  \"amount\": \"50.00\",\n  \"description\": \"Bonus\",\n  \"reference_id\": \"BON-001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Debit 30",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/accounts/{{aliceId}}/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"debit\",\n  \"amount\": 30,\n  \"description\": \"Groceries\",\n  \"reference_id\": \"GRO-001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Debit 20",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/accounts/{{aliceId}}/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"debit\",\n  \"amount\": 20,\n  \"description\": \"Fuel\",\n  \"reference_id\": \"FUEL-001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Debit 150 - insufficient balance (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/accounts/{{aliceId}}/transactions",
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"debit\",\n  \"amount\": 150,\n  \"reference_id\": \"BIG-001\"\n}" }
+          }
+        },
+        {
+          "name": "Duplicate reference_id (409)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/accounts/{{aliceId}}/transactions",
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"credit\",\n  \"amount\": 100,\n  \"reference_id\": \"SAL-001\"\n}" }
+          }
+        },
+        {
+          "name": "Same reference_id, different account (201)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/accounts/{{bobId}}/transactions",
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"credit\",\n  \"amount\": 50,\n  \"reference_id\": \"SAL-001\"\n}" }
+          }
+        },
+        {
+          "name": "Invalid type / amount (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/accounts/{{aliceId}}/transactions",
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"refund\",\n  \"amount\": -5,\n  \"reference_id\": \"X-1\"\n}" }
+          }
+        },
+        {
+          "name": "Add transaction with account_id in body",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/transactions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"account_id\": \"{{aliceId}}\",\n  \"type\": \"credit\",\n  \"amount\": 5,\n  \"reference_id\": \"FLAT-001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get single transaction",
+          "request": { "method": "GET", "url": "{{baseUrl}}/transactions/{{transactionId}}" }
+        },
+        {
+          "name": "Delete transaction - immutable (405)",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/transactions/{{transactionId}}" }
+        }
+      ]
+    },
+    {
+      "name": "3. History",
+      "item": [
+        {
+          "name": "All transactions (latest first)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/accounts/{{aliceId}}/transactions" }
+        },
+        {
+          "name": "Debits only, page 1, limit 2",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/accounts/{{aliceId}}/transactions?type=debit&page=1&limit=2",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounts", "{{aliceId}}", "transactions"],
+              "query": [
+                { "key": "type", "value": "debit" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "2" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Invalid pagination (400)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/accounts/{{aliceId}}/transactions?page=0&limit=500",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounts", "{{aliceId}}", "transactions"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "limit", "value": "500" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Transfers (bonus)",
+      "item": [
+        {
+          "name": "Transfer 30 Alice -> Bob",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.collectionVariables.set('transferId', pm.response.json().id);"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/transfers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from_account_id\": \"{{aliceId}}\",\n  \"to_account_id\": \"{{bobId}}\",\n  \"amount\": 30,\n  \"description\": \"Rent share\",\n  \"reference_id\": \"TRF-001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Transfer - insufficient balance (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/transfers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from_account_id\": \"{{aliceId}}\",\n  \"to_account_id\": \"{{bobId}}\",\n  \"amount\": 100000\n}"
+            }
+          }
+        },
+        {
+          "name": "Transfer - same account (422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/transfers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from_account_id\": \"{{aliceId}}\",\n  \"to_account_id\": \"{{aliceId}}\",\n  \"amount\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Get transfer",
+          "request": { "method": "GET", "url": "{{baseUrl}}/transfers/{{transferId}}" }
+        }
+      ]
+    }
+  ]
+}
