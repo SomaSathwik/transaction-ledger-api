@@ -44,13 +44,17 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-The API is now available at <http://localhost:8000>:
+The API is now available at `http://localhost:8000`. Open these URLs in your browser **while the server is
+running** (they point at your own machine, so they will not open from GitHub):
 
-| URL | What you get |
+| URL (local) | What you get |
 | --- | --- |
-| <http://localhost:8000/docs> | Swagger UI – try every endpoint from the browser |
-| <http://localhost:8000/redoc> | ReDoc rendering of the same OpenAPI specification |
-| <http://localhost:8000/health> | Health check (`{"status": "ok", "database": "sqlite", ...}` ) |
+| `http://localhost:8000/docs` | Swagger UI – try every endpoint from the browser |
+| `http://localhost:8000/redoc` | ReDoc rendering of the same OpenAPI specification |
+| `http://localhost:8000/health` | Health check (`{"status": "ok", "database": "sqlite", ...}` ) |
+
+If you want to read the API documentation without running anything, see [docs/API.md](docs/API.md) – it
+contains the same endpoints with full request and response examples.
 
 Tables are created automatically on first start (`ledger.db` in the project directory).
 
